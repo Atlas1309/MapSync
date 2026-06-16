@@ -1,0 +1,55 @@
+    body {
+      margin: 0;
+      height: 100vh;
+      background: #00000069;
+      overflow: hidden;
+      cursor: default;
+    }
+
+    .cursor {
+      position: fixed;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: rgb(255, 0, 221);
+      pointer-events: none;
+      z-index: 9999;
+    }
+
+    #status {
+        position: fixed;
+        top: 10px;
+        left: 10px;
+        color: white;
+        font-family: Arial, sans-serif;
+        font-size: 14px;
+        opacity: 0.7;
+        z-index: 9999;
+    }
+
+    #user-list {
+      position: fixed;
+      bottom: 10px;
+      right: 10px;
+      background: rgba(255, 255, 255, 0.85);
+      padding: 8px 10px;
+      border-radius: 8px;
+      font-family: Arial, sans-serif;
+      font-size: 13px;
+      z-index: 9999;
+      box-shadow: 0 2px 10px rgba(0,0,0,.2);
+      min-width: 60px;
+    }
+
+    .user-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin: 3px 0;
+    }
+
+    .user-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+    }

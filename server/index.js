@@ -2,91 +2,26 @@ console.log("Starting MapSync server...");
 
 const express = require("express");
 const http = require("http");
+const path = require("path");
 const { Server } = require("socket.io");
 
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
+app.use(express.static(path.join(__dirname, "../client")));
 
 // Serve test page
 app.get("/", (req, res) => {
-  res.send(`
-<!DOCTYPE html>
-<html>
-<head>
-  <title>MapSync</title>
-  <style>
-    body {
-      margin: 0;
-      height: 100vh;
-      background: #111;
-      overflow: hidden;
-      cursor: default;
-    }
-
-    .cursor {
-      position: absolute;
-      width: 12px;
-      height: 12px;
-      border-radius: 50%;
-      background: lime;
-      pointer-events: none;
-    }
-  </style>
-</head>
-
-<body>
-    <div style="
-        position: fixed;
-        top: 10px;
-        left: 10px;
-        color: white;
-        font-family: Arial;
-        font-size: 14px;
-        opacity: 0.7;
-        z-index: 9999;
-">
-  MapSync • Live Collaboration Active
-</div>
-<script src="/socket.io/socket.io.js"></script>
-
-<script>
-const socket = io();
-
-// store other users' cursors
-const cursors = {};
-
-// SEND mouse position
-document.addEventListener("mousemove", (e) => {
-  socket.emit("mouse-move", {
-    x: e.clientX,
-    y: e.clientY
-  });
+  const filePath = path.join(__dirname, "../client/index.html");
+  console.log("Serving:", filePath);
+  res.sendFile(filePath);
 });
-
-// RECEIVE mouse positions
-socket.on("remote-mouse-move", (data) => {
-  let cursor = cursors[data.id];
-
-  if (!cursor) {
-    cursor = document.createElement("div");
-    cursor.className = "cursor";
-    document.body.appendChild(cursor);
-    cursors[data.id] = cursor;
-  }
-
-  cursor.style.left = data.x + "px";
-  cursor.style.top = data.y + "px";
-});
-</script>
-
-</body>
-</html>
-  `);
-});
-
 // Store connected users (for later)
 let users = {};
+
+function broadcastUserList() {
+  io.emit("user-list", Object.values(users));
+}
 
 io.on("connection", (socket) => {
   console.log("User connected:", socket.id);
@@ -107,20 +42,38 @@ io.on("connection", (socket) => {
     message: "Welcome to MapSync!"
   });
 
+  // Save username + colour
+  socket.on("set-user-info", (data) => {
+    users[socket.id] = {
+      id: socket.id,
+      name: data.name,
+      color: data.color
+  };
+  
+  broadcastUserList();
+
+  console.log("User info updated:", users[socket.id]);
+});
+
     // 👇 ADD IT HERE (IMPORTANT)
   socket.on("mouse-move", (data) => {
     socket.broadcast.emit("remote-mouse-move", {
       id: socket.id,
       x: data.x,
-      y: data.y
+      y: data.y,    
+      name: users[socket.id]?.name || "Anonymous",
+      color: users[socket.id]?.color || "lime"
     });
   });
+
 
   // Handle disconnect
   socket.on("disconnect", () => {
     console.log("User disconnected:", socket.id);
 
     delete users[socket.id];
+
+    broadcastUserList();
 
     io.emit("user-left", {
       id: socket.id,
