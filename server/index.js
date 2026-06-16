@@ -7,7 +7,12 @@ const { Server } = require("socket.io");
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server);
+const io = new Server(server, {
+  cors: {
+    origin: "*",
+    methods: ["GET", "POST"]
+  }
+});
 app.use(express.static(path.join(__dirname, "../client")));
 
 // Serve test page
@@ -53,15 +58,30 @@ io.on("connection", (socket) => {
   broadcastUserList();
 
   console.log("User info updated:", users[socket.id]);
+
+  socket.on("map-ping", (data) => {
+  socket.broadcast.emit("remote-map-ping", {
+    id: socket.id,
+    lng: data.lng,
+    lat: data.lat,
+    name: users[socket.id]?.name || "Anonymous",
+    color: users[socket.id]?.color || "hotpink"
+  });
+});
 });
 
     // 👇 ADD IT HERE (IMPORTANT)
   socket.on("mouse-move", (data) => {
+    console.log("mouse-move received:", data);
+
     socket.broadcast.emit("remote-mouse-move", {
       id: socket.id,
+
       x: data.x,
-      y: data.y,    
+      y: data.y,
+
       name: users[socket.id]?.name || "Anonymous",
+
       color: users[socket.id]?.color || "lime"
     });
   });

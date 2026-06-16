@@ -1,0 +1,22 @@
+{
+  "manifest_version": 3,
+  "name": "MapSync Overlay",
+  "version": "0.1.0",
+  "description": "Collaborative overlay for Map Genie.",
+  "content_scripts": [
+    {
+      "matches": ["https://mapgenie.io/*"],
+      "js": ["socket.io.min.js", "content.js"]
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["page-bridge.js"],
+      "matches": ["https://mapgenie.io/*"]
+    }
+  ],
+  "host_permissions": [
+    "https://mapgenie.io/*",
+    "http://localhost:3000/*"
+  ]
+}
