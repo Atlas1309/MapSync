@@ -24,6 +24,21 @@ app.get("/", (req, res) => {
 // Store connected users (for later)
 let users = {};
 
+const availableColors = [
+  "#ff1744", // red
+  "#00e676", // green
+  "#2979ff", // blue
+  "#ffea00", // yellow
+  "#ff9100", // orange
+  "#e040fb", // purple
+  "#00e5ff", // cyan
+  "#ffffff"  // white
+];
+function getUsedColors() {
+  return Object.values(users)
+    .map((user) => user.color)
+    .filter(Boolean);
+}
 function broadcastUserList() {
   io.emit("user-list", Object.values(users));
 }
@@ -31,75 +46,93 @@ function broadcastUserList() {
 io.on("connection", (socket) => {
   console.log("User connected:", socket.id);
 
-  socket.on("drawing-complete", (drawing) => {
-  socket.broadcast.emit("remote-drawing-complete", {
-    id: drawing.id,
-    points: drawing.points,
-    color: users[socket.id]?.color || "hotpink",
-    name: users[socket.id]?.name || "Anonymous"
-  });
-  socket.on("delete-last-drawing", () => {
-  socket.broadcast.emit("remote-delete-last-drawing");
-  });
-});
-
-  // Save user
+  // Save temporary user
   users[socket.id] = {
     id: socket.id
   };
 
-  // Tell everyone a new user joined
   io.emit("user-joined", {
     id: socket.id,
     totalUsers: Object.keys(users).length
   });
 
-  // Send welcome message to just this user
   socket.emit("welcome", {
     message: "Welcome to MapSync!"
   });
 
   // Save username + colour
   socket.on("set-user-info", (data) => {
+    const usedColors = getUsedColors();
+
+    let requestedColor = data.color;
+
+    if (
+      !availableColors.includes(requestedColor) ||
+      usedColors.includes(requestedColor)
+    ) {
+      requestedColor =
+        availableColors.find(
+          (color) => !usedColors.includes(color)
+        ) || "hotpink";
+    }
+
     users[socket.id] = {
       id: socket.id,
       name: data.name,
-      color: data.color
-  };
-  
-  broadcastUserList();
+      color: requestedColor
+    };
 
-  console.log("User info updated:", users[socket.id]);
+    socket.emit("user-info-confirmed", users[socket.id]);
 
-  socket.on("map-ping", (data) => {
-  socket.broadcast.emit("remote-map-ping", {
-    id: socket.id,
-    lng: data.lng,
-    lat: data.lat,
-    name: users[socket.id]?.name || "Anonymous",
-    color: users[socket.id]?.color || "hotpink"
+    broadcastUserList();
+
+    console.log("User info updated:", users[socket.id]);
   });
-});
-});
 
-    // 👇 ADD IT HERE (IMPORTANT)
+  // Mouse movement
   socket.on("mouse-move", (data) => {
-  if (
-    typeof data.lng !== "number" ||
-    typeof data.lat !== "number"
-  ) {
-    console.warn("Ignoring bad mouse-move:", data);
-    return;
-  }
+    if (
+      typeof data.lng !== "number" ||
+      typeof data.lat !== "number"
+    ) {
+      console.warn("Ignoring bad mouse-move:", data);
+      return;
+    }
 
-  socket.broadcast.emit("remote-mouse-move", {
-    id: socket.id,
-    lng: data.lng,
-    lat: data.lat,
-    name: users[socket.id]?.name || "Anonymous",
-    color: users[socket.id]?.color || "lime"
+    socket.broadcast.emit("remote-mouse-move", {
+      id: socket.id,
+      lng: data.lng,
+      lat: data.lat,
+      name: users[socket.id]?.name || "Anonymous",
+      color: users[socket.id]?.color || "lime"
+    });
   });
-});
+
+  // Map ping
+  socket.on("map-ping", (data) => {
+    socket.broadcast.emit("remote-map-ping", {
+      id: socket.id,
+      lng: data.lng,
+      lat: data.lat,
+      name: users[socket.id]?.name || "Anonymous",
+      color: users[socket.id]?.color || "hotpink"
+    });
+  });
+
+  // Drawing complete
+  socket.on("drawing-complete", (drawing) => {
+    socket.broadcast.emit("remote-drawing-complete", {
+      id: drawing.id,
+      points: drawing.points,
+      color: users[socket.id]?.color || "hotpink",
+      name: users[socket.id]?.name || "Anonymous"
+    });
+  });
+
+  // Delete last drawing
+  socket.on("delete-last-drawing", () => {
+    socket.broadcast.emit("remote-delete-last-drawing");
+  });
 
   // Handle disconnect
   socket.on("disconnect", () => {
@@ -115,7 +148,6 @@ io.on("connection", (socket) => {
     });
   });
 });
-
 // Start server
 server.listen(3000, () => {
   console.log("MapSync running on http://localhost:3000");
