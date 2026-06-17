@@ -31,6 +31,18 @@ function broadcastUserList() {
 io.on("connection", (socket) => {
   console.log("User connected:", socket.id);
 
+  socket.on("drawing-complete", (drawing) => {
+  socket.broadcast.emit("remote-drawing-complete", {
+    id: drawing.id,
+    points: drawing.points,
+    color: users[socket.id]?.color || "hotpink",
+    name: users[socket.id]?.name || "Anonymous"
+  });
+  socket.on("delete-last-drawing", () => {
+  socket.broadcast.emit("remote-delete-last-drawing");
+  });
+});
+
   // Save user
   users[socket.id] = {
     id: socket.id
@@ -72,20 +84,22 @@ io.on("connection", (socket) => {
 
     // 👇 ADD IT HERE (IMPORTANT)
   socket.on("mouse-move", (data) => {
-    console.log("mouse-move received:", data);
+  if (
+    typeof data.lng !== "number" ||
+    typeof data.lat !== "number"
+  ) {
+    console.warn("Ignoring bad mouse-move:", data);
+    return;
+  }
 
-    socket.broadcast.emit("remote-mouse-move", {
-      id: socket.id,
-
-      x: data.x,
-      y: data.y,
-
-      name: users[socket.id]?.name || "Anonymous",
-
-      color: users[socket.id]?.color || "lime"
-    });
+  socket.broadcast.emit("remote-mouse-move", {
+    id: socket.id,
+    lng: data.lng,
+    lat: data.lat,
+    name: users[socket.id]?.name || "Anonymous",
+    color: users[socket.id]?.color || "lime"
   });
-
+});
 
   // Handle disconnect
   socket.on("disconnect", () => {
