@@ -24,6 +24,8 @@ app.get("/", (req, res) => {
 // Store connected users (for later)
 let users = {};
 
+let savedDrawings = [];
+
 const availableColors = [
   "#ff1744", // red
   "#00e676", // green
@@ -32,7 +34,6 @@ const availableColors = [
   "#ff9100", // orange
   "#e040fb", // purple
   "#00e5ff", // cyan
-  "#ffffff"  // white
 ];
 function getUsedColors() {
   return Object.values(users)
@@ -59,6 +60,15 @@ io.on("connection", (socket) => {
   socket.emit("welcome", {
     message: "Welcome to MapSync!"
   });
+  socket.emit("drawing-history", savedDrawings);
+
+  // NEW
+  socket.emit(
+  "available-colors",
+  availableColors.filter(
+    (c) => !getUsedColors().includes(c)
+  )
+  );
 
   // Save username + colour
   socket.on("set-user-info", (data) => {
@@ -85,6 +95,14 @@ io.on("connection", (socket) => {
     socket.emit("user-info-confirmed", users[socket.id]);
 
     broadcastUserList();
+
+    // NEW
+    io.emit(
+      "available-colors",
+      availableColors.filter(
+        (c) => !getUsedColors().includes(c)
+      )
+    );
 
     console.log("User info updated:", users[socket.id]);
   });
@@ -121,13 +139,17 @@ io.on("connection", (socket) => {
 
   // Drawing complete
   socket.on("drawing-complete", (drawing) => {
-    socket.broadcast.emit("remote-drawing-complete", {
-      id: drawing.id,
-      points: drawing.points,
-      color: users[socket.id]?.color || "hotpink",
-      name: users[socket.id]?.name || "Anonymous"
-    });
+  savedDrawings.push({
+    id: drawing.id,
+    points: drawing.points,
+    color: users[socket.id]?.color
   });
+
+  socket.broadcast.emit(
+    "remote-drawing-complete",
+    savedDrawings[savedDrawings.length - 1]
+  );
+});
 
   // Delete last drawing
   socket.on("delete-last-drawing", () => {

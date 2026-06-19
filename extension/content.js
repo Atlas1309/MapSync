@@ -10,26 +10,6 @@ bridgeScript.onload = () => bridgeScript.remove();
 console.log("MapSync extension loaded");
 
 // =================
-// Overlay panel
-// =================
-
-const panel = document.createElement("div");
-
-panel.innerText = "MapSync connecting...";
-panel.style.position = "fixed";
-panel.style.bottom = "10px";
-panel.style.right = "10px";
-panel.style.zIndex = "999999";
-panel.style.background = "white";
-panel.style.color = "black";
-panel.style.padding = "10px";
-panel.style.borderRadius = "10px";
-panel.style.fontFamily = "Arial, sans-serif";
-panel.style.fontSize = "13px";
-
-document.body.appendChild(panel);
-
-// =================
 // SVG drawing layer
 // =================
 
@@ -55,18 +35,29 @@ const socket = io("http://localhost:3000");
 // Identity
 // =================
 
-const username = prompt("Enter your MapSync name") || "Anonymous";
+const colorOptions = [
+  "#ff1744",
+  "#00e676",
+  "#2979ff",
+  "#ffea00",
+  "#ff9100",
+  "#e040fb",
+  "#00e5ff",
+];
 
-const myColor =
-  "#" +
-  Math.floor(Math.random() * 16777215)
-    .toString(16)
-    .padStart(6, "0");
+let confirmedColor = colorOptions[0];
 
-socket.emit("set-user-info", {
-  name: username,
-  color: myColor
+let availableColourSet = new Set(colorOptions);
+
+let colourButtons = [];
+
+showLoginPanel();
+
+
+socket.on("user-info-confirmed", (user) => {
+  confirmedColor = user.color || colorOptions[0];
 });
+
 
 // =================
 // State
@@ -86,13 +77,25 @@ let lastCursorSend = 0;
 // =================
 
 socket.on("connect", () => {
-  panel.innerText = "MapSync connected";
+  updateStatus("connected");
 });
 
 socket.on("disconnect", () => {
-  panel.innerText = "MapSync disconnected";
+  updateStatus("disconnected");
 });
 
+socket.on("available-colors", (colors) => {
+  availableColourSet = new Set(colors);
+  updateColourButtons();
+});
+
+socket.on("drawing-history", (history) => {
+  history.forEach((drawing) => {
+    drawings.push(drawing);
+
+    renderDrawing(drawing);
+  });
+});
 // =================
 // Cursor movement
 // =================
@@ -254,7 +257,7 @@ setInterval(() => {
 document.addEventListener("keydown", (e) => {
   if (e.key.toLowerCase() === "d") {
     drawKeyDown = true;
-    panel.innerText = "MapSync drawing mode";
+    updateStatus("drawing");
   }
   if (e.key === "Backspace") {
   const drawing = drawings.pop();
@@ -265,10 +268,10 @@ document.addEventListener("keydown", (e) => {
 
   socket.emit("delete-last-drawing");
 
-  panel.innerText = "Deleted last drawing";
+  updateStatus("deleted");
 
   setTimeout(() => {
-    panel.innerText = "MapSync connected";
+    updateStatus("connected");
   }, 1000);
 }
 });
@@ -276,7 +279,7 @@ document.addEventListener("keydown", (e) => {
 document.addEventListener("keyup", (e) => {
   if (e.key.toLowerCase() === "d") {
     drawKeyDown = false;
-    panel.innerText = "MapSync connected";
+    updateStatus("connected");
 
     if (isDrawing) {
       finishDrawing();
@@ -300,12 +303,12 @@ document.addEventListener("mousedown", (e) => {
   currentDrawing = {
     id: crypto.randomUUID(),
     points: [],
-    color: myColor
+    color: confirmedColor || colorOptions[0]
   };
 
   drawings.push(currentDrawing);
 
-  panel.innerText = "Drawing...";
+  updateStatus("drawing");
 });
 
 document.addEventListener("mouseup", () => {
@@ -325,7 +328,7 @@ function finishDrawing() {
 
   currentDrawing = null;
 
-  panel.innerText = "MapSync connected";
+  updateStatus("connected");
 }
 
 socket.on("remote-drawing-complete", (drawing) => {
