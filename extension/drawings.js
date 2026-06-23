@@ -1,3 +1,5 @@
+console.log("drawings.js loaded");
+
 // =================
 // Drawing state
 // =================
