@@ -137,8 +137,13 @@ io.on("connection", (socket) => {
     });
   });
 
-  // Drawing complete
-  socket.on("drawing-complete", (drawing) => {
+// Drawing complete
+socket.on("drawing-complete", (drawing) => {
+  console.log(
+    "drawing-complete received:",
+    drawing.points?.length
+  );
+
   savedDrawings.push({
     id: drawing.id,
     points: drawing.points,
@@ -147,7 +152,9 @@ io.on("connection", (socket) => {
 
   socket.broadcast.emit(
     "remote-drawing-complete",
-    savedDrawings[savedDrawings.length - 1]
+    savedDrawings[
+      savedDrawings.length - 1
+    ]
   );
 });
 

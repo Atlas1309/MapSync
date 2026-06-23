@@ -65,11 +65,6 @@ socket.on("user-info-confirmed", (user) => {
 
 const cursors = {};
 const activePings = [];
-const drawings = [];
-
-let isDrawing = false;
-let currentDrawing = null;
-let drawKeyDown = false;
 let lastCursorSend = 0;
 
 // =================
@@ -89,13 +84,6 @@ socket.on("available-colors", (colors) => {
   updateColourButtons();
 });
 
-socket.on("drawing-history", (history) => {
-  history.forEach((drawing) => {
-    drawings.push(drawing);
-
-    renderDrawing(drawing);
-  });
-});
 // =================
 // Cursor movement
 // =================
@@ -189,13 +177,6 @@ document.addEventListener("click", (e) => {
 socket.on("remote-map-ping", (data) => {
   showPing(data.lng, data.lat, data.color);
 });
-socket.on("remote-delete-last-drawing", () => {
-  const drawing = drawings.pop();
-
-  if (drawing?.svgPath) {
-    drawing.svgPath.remove();
-  }
-});
 
 function showPing(lng, lat, color = "hotpink") {
   const ping = document.createElement("div");
@@ -250,114 +231,6 @@ setInterval(() => {
   activePings.forEach(updatePingPosition);
 }, 300);
 
-// =================
-// Drawing controls
-// =================
-
-document.addEventListener("keydown", (e) => {
-  if (e.key.toLowerCase() === "d") {
-    drawKeyDown = true;
-    updateStatus("drawing");
-  }
-  if (e.key === "Backspace") {
-  const drawing = drawings.pop();
-
-  if (drawing?.svgPath) {
-    drawing.svgPath.remove();
-  }
-
-  socket.emit("delete-last-drawing");
-
-  updateStatus("deleted");
-
-  setTimeout(() => {
-    updateStatus("connected");
-  }, 1000);
-}
-});
-
-document.addEventListener("keyup", (e) => {
-  if (e.key.toLowerCase() === "d") {
-    drawKeyDown = false;
-    updateStatus("connected");
-
-    if (isDrawing) {
-      finishDrawing();
-    }
-  }
-});
-
-document.addEventListener("mousedown", (e) => {
-  console.log("mousedown", {
-    drawKeyDown,
-    button: e.button
-  });
-
-  if (!drawKeyDown) return;
-
-  e.preventDefault();
-  e.stopPropagation();
-
-  isDrawing = true;
-
-  currentDrawing = {
-    id: crypto.randomUUID(),
-    points: [],
-    color: confirmedColor || colorOptions[0]
-  };
-
-  drawings.push(currentDrawing);
-
-  updateStatus("drawing");
-});
-
-document.addEventListener("mouseup", () => {
-  if (isDrawing) {
-    finishDrawing();
-  }
-});
-
-function finishDrawing() {
-  if (!currentDrawing) return;
-
-  isDrawing = false;
-
-  if (currentDrawing.points.length > 1) {
-    socket.emit("drawing-complete", currentDrawing);
-  }
-
-  currentDrawing = null;
-
-  updateStatus("connected");
-}
-
-socket.on("remote-drawing-complete", (drawing) => {
-  drawings.push({
-    id: drawing.id,
-    points: drawing.points,
-    color: drawing.color
-  });
-
-  renderDrawing(drawings[drawings.length - 1]);
-});
-
-// =================
-// Drawing rendering
-// =================
-
-function renderDrawing(drawing) {
-  window.postMessage({
-    type: "MAPSYNC_PROJECT_DRAWING",
-    drawingId: drawing.id,
-    points: drawing.points
-  }, "*");
-}
-
-function updateAllDrawings() {
-  drawings.forEach(renderDrawing);
-}
-
-setInterval(updateAllDrawings, 300);
 
 // =================
 // Bridge responses
