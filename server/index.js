@@ -16,11 +16,16 @@ const io = new Server(server, {
 app.use(express.static(path.join(__dirname, "../client")));
 
 // Serve test page
+//app.get("/", (req, res) => {
+//  const filePath = path.join(__dirname, "../client/index.html");
+//  console.log("Serving:", filePath);
+//  res.sendFile(filePath);
+//});
+
 app.get("/", (req, res) => {
-  const filePath = path.join(__dirname, "../client/index.html");
-  console.log("Serving:", filePath);
-  res.sendFile(filePath);
+  res.send("MapSync server online");
 });
+
 // Store connected users (for later)
 let users = {};
 
