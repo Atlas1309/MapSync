@@ -140,5 +140,5 @@ setInterval(() => {
   activePings.forEach(
     updatePingPosition
   );
-}, 300);
+}, 50);
 

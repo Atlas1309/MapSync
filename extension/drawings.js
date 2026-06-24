@@ -149,4 +149,4 @@ function updateAllDrawings() {
   drawings.forEach(renderDrawing);
 }
 
-setInterval(updateAllDrawings, 300);
+setInterval(updateAllDrawings, 50);

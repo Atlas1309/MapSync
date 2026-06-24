@@ -250,7 +250,7 @@ setInterval(() => {
   markers.forEach(
     updateMarkerPosition
   );
-}, 300);
+}, 50);
 
 document.addEventListener("keydown", (e) => {
   if (e.key !== "Backspace" || !e.shiftKey) return;

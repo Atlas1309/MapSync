@@ -55,6 +55,7 @@ socket.on("remote-mouse-move", (data) => {
     cursor.style.borderRadius = "50%";
     cursor.style.pointerEvents = "none";
     cursor.style.zIndex = "2147483647";
+    cursor.style.transform = "translate(-50%, -50%)";
 
     document.body.appendChild(cursor);
 
