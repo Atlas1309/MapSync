@@ -27,19 +27,52 @@ window.addEventListener("message", (event) => {
     return;
   }
 
+  if (
+  event.data.type === "MAPSYNC_PROJECT_POINT_RESULT" &&
+  markers.find((m) => m.id === event.data.pingId)
+) {
+  const marker = markers.find(
+    (m) => m.id === event.data.pingId
+  );
+
+  marker.element.style.left =
+    event.data.x + "px";
+
+  marker.element.style.top =
+    event.data.y + "px";
+
+  return;
+}
+
   if (event.data.type === "MAPSYNC_MAP_POINT_RESULT") {
-    if (
-      typeof event.data.lng === "number" &&
-      typeof event.data.lat === "number"
-    ) {
-      socket.emit("map-ping", {
-        lng: event.data.lng,
-        lat: event.data.lat
-      });
-    }
+  if (
+    typeof event.data.lng !== "number" ||
+    typeof event.data.lat !== "number"
+  ) {
+    return;
+  }
+
+  if (event.data.markerLabel) {
+    const marker = {
+      id: crypto.randomUUID(),
+      label: event.data.markerLabel,
+      lng: event.data.lng,
+      lat: event.data.lat,
+      color: confirmedColor || colorOptions[0]
+    };
+
+    socket.emit("marker-created", marker);
 
     return;
   }
+
+  socket.emit("map-ping", {
+    lng: event.data.lng,
+    lat: event.data.lat
+  });
+
+  return;
+}
 
   if (
     event.data.type ===

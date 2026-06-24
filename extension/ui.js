@@ -6,14 +6,32 @@ const panel = document.createElement("div");
 
 function updateStatus(text = "connected") {
   panel.innerHTML = `
-    <div style="font-weight:bold;margin-bottom:6px;">
-      MapSync ${text}
+    <div style="font-weight:bold;">
+      MapSync ${text} • Controls
     </div>
 
-    <div>D + Middle Mouse → Draw</div>
-    <div>Backspace → Delete last</div>
-    <div>Alt + Click → Ping</div>
+    <div class="mapsync-controls" style="
+      display:none;
+      margin-top:6px;
+    ">
+      <div>Alt + Click → Ping</div>
+      <div>D + Middle Mouse → Draw</div>
+      <div>Backspace → Delete last drawing</div>
+      <div>Shift + Click → Add marker</div>
+      <div>Shift + Backspace → Delete last marker</div>
+    </div>
   `;
+
+  const controls =
+    panel.querySelector(".mapsync-controls");
+
+  panel.onmouseenter = () => {
+    controls.style.display = "block";
+  };
+
+  panel.onmouseleave = () => {
+    controls.style.display = "none";
+  };
 }
 
 updateStatus("connecting...");

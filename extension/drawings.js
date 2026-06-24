@@ -20,13 +20,7 @@ document.addEventListener("keydown", (e) => {
     updateStatus("drawing");
   }
 
-  if (e.key === "Backspace") {
-    const drawing = drawings.pop();
-
-    if (drawing?.svgPath) {
-      drawing.svgPath.remove();
-    }
-
+  if (e.key === "Backspace" && !e.shiftKey) {
     socket.emit("delete-last-drawing");
 
     updateStatus("deleted");
@@ -108,14 +102,6 @@ socket.on("remote-drawing-complete", (drawing) => {
   renderDrawing(remoteDrawing);
 });
 
-socket.on("remote-delete-last-drawing", () => {
-  const drawing = drawings.pop();
-
-  if (drawing?.svgPath) {
-    drawing.svgPath.remove();
-  }
-});
-
 socket.on("drawing-history", (history) => {
   history.forEach((drawing) => {
     drawings.push(drawing);
@@ -123,6 +109,29 @@ socket.on("drawing-history", (history) => {
     renderDrawing(drawing);
   });
 });
+
+socket.on(
+  "remote-drawing-deleted",
+  (drawingId) => {
+    const index =
+      drawings.findIndex(
+        (d) =>
+          d.id === drawingId
+      );
+
+    if (index === -1)
+      return;
+
+    drawings[
+      index
+    ].svgPath?.remove();
+
+    drawings.splice(
+      index,
+      1
+    );
+  }
+);
 
 // =================
 // Drawing rendering

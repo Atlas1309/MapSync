@@ -22,7 +22,8 @@ window.addEventListener("message", (event) => {
       type: "MAPSYNC_MAP_POINT_RESULT",
       requestId: event.data.requestId,
       lng: lngLat.lng,
-      lat: lngLat.lat
+      lat: lngLat.lat,
+      markerLabel: event.data.markerLabel
     }, "*");
 
     return;

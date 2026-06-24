@@ -26,6 +26,8 @@ let users = {};
 
 let savedDrawings = [];
 
+let savedMarkers = [];
+
 const availableColors = [
   "#ff1744", // red
   "#00e676", // green
@@ -61,6 +63,11 @@ io.on("connection", (socket) => {
     message: "Welcome to MapSync!"
   });
   socket.emit("drawing-history", savedDrawings);
+
+  // NEW
+  socket.emit(
+  "marker-history", savedMarkers
+);
 
   // NEW
   socket.emit(
@@ -107,6 +114,41 @@ io.on("connection", (socket) => {
     console.log("User info updated:", users[socket.id]);
   });
 
+  socket.on("marker-created", (marker) => {
+  const savedMarker = {
+    ...marker,
+    ownerId: socket.id
+  };
+
+  savedMarkers.push(savedMarker);
+
+  io.emit(
+    "remote-marker-created",
+    savedMarker
+  );
+});
+
+  socket.on("marker-deleted", (markerId) => {
+  console.log("marker delete requested:", markerId);
+
+  const marker = savedMarkers.find(
+    (m) => m.id === markerId
+  );
+
+  console.log("marker found:", marker);
+
+  if (!marker || marker.ownerId !== socket.id) {
+    console.log("marker delete rejected");
+    return;
+  }
+
+  savedMarkers = savedMarkers.filter(
+    (m) => m.id !== markerId
+  );
+
+  io.emit("remote-marker-deleted", markerId);
+});
+
   // Mouse movement
   socket.on("mouse-move", (data) => {
     if (
@@ -145,10 +187,11 @@ socket.on("drawing-complete", (drawing) => {
   );
 
   savedDrawings.push({
-    id: drawing.id,
-    points: drawing.points,
-    color: users[socket.id]?.color
-  });
+  id: drawing.id,
+  points: drawing.points,
+  color: users[socket.id]?.color,
+  ownerId: socket.id
+});
 
   socket.broadcast.emit(
     "remote-drawing-complete",
@@ -160,9 +203,18 @@ socket.on("drawing-complete", (drawing) => {
 
   // Delete last drawing
   socket.on("delete-last-drawing", () => {
-    socket.broadcast.emit("remote-delete-last-drawing");
-  });
+  const index = savedDrawings
+    .map((drawing, index) => ({ drawing, index }))
+    .reverse()
+    .find(({ drawing }) => drawing.ownerId === socket.id)
+    ?.index;
 
+  if (index === undefined) return;
+
+  const [deleted] = savedDrawings.splice(index, 1);
+
+  io.emit("remote-drawing-deleted", deleted.id);
+});
   // Handle disconnect
   socket.on("disconnect", () => {
     console.log("User disconnected:", socket.id);
