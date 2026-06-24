@@ -1,7 +1,7 @@
 console.log("socket.js loaded");
 
 var socket =
-  io("http://localhost:3000");
+  io("https://mapsync.cloweshub.uk");
 
   socket.on("user-info-confirmed", (user) => {
   confirmedColor = user.color || colorOptions[0];
